@@ -19,14 +19,30 @@ APP_SUFFIXES = (
     "webstorm", "clion", "brave", "firefox", "google chrome", "chromium", "discord"
 )
 
-WORKSPACE_ROOTS = [
-    os.path.expanduser("~/Desktop/Worker/WorkSpace"),
-    os.path.expanduser("~/Desktop/Worker"),
-    os.path.expanduser("~/Projects"),
-    os.path.expanduser("~/workspace"),
-    os.path.expanduser("~/Development")
-]
+# // Dynamic Workspace Roots
+def get_workspace_roots():
+    current_repo = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    cwd = os.getcwd()
+    candidates = [
+        current_repo,
+        cwd,
+        os.path.abspath(os.path.join(current_repo, "..")),
+        os.path.abspath(os.path.join(cwd, "..")),
+        os.path.expanduser("~/Desktop/Worker/WorkSpace"),
+        os.path.expanduser("~/Desktop/Worker"),
+        os.path.expanduser("~/Projects"),
+        os.path.expanduser("~/workspace"),
+        os.path.expanduser("~/Development")
+    ]
+    seen = set()
+    roots = []
+    for c in candidates:
+        if c and os.path.isdir(c) and c not in seen:
+            seen.add(c)
+            roots.append(c)
+    return roots
 
+# // Constants & Suffixes
 GENERIC_PROJECT_NAMES = {
     "workspace", "projects", "development", "worker", "src", "code",
     "visual studio code", "antigravity", "antigravity ide", "code", "cursor",
@@ -82,43 +98,37 @@ def resolve_project_from_file_search(file_name: str) -> str:
         return ""
         
     target_base = os.path.basename(clean_f)
+    roots = get_workspace_roots()
     
-    # // Primary Workspace Git Repo
-    focus_dir = os.path.expanduser("~/Desktop/Worker/WorkSpace/FocusShell")
-    if os.path.isdir(focus_dir):
-        if os.path.exists(os.path.join(focus_dir, clean_f)) or os.path.exists(os.path.join(focus_dir, target_base)):
-            git_name = find_git_root_name(focus_dir)
-            if git_name:
+    for r in roots:
+        git_name = find_git_root_name(r)
+        if git_name:
+            if os.path.exists(os.path.join(r, clean_f)) or os.path.exists(os.path.join(r, target_base)):
                 return git_name
-        matches = glob.glob(f"{focus_dir}/**/{target_base}", recursive=True)
-        if matches:
-            git_name = find_git_root_name(focus_dir)
-            if git_name:
+            matches = glob.glob(f"{r}/**/{target_base}", recursive=True)
+            if matches:
                 return git_name
                 
-    # // Secondary Workspace Roots
-    for root in WORKSPACE_ROOTS:
-        if not os.path.exists(root):
-            continue
         try:
-            for entry in os.listdir(root):
-                proj_dir = os.path.join(root, entry)
+            for entry in os.listdir(r):
+                proj_dir = os.path.join(r, entry)
                 if os.path.isdir(proj_dir) and not entry.startswith("."):
                     if os.path.exists(os.path.join(proj_dir, clean_f)) or os.path.exists(os.path.join(proj_dir, target_base)):
-                        git_name = find_git_root_name(proj_dir)
-                        if git_name:
-                            return git_name
+                        child_git = find_git_root_name(proj_dir)
+                        if child_git:
+                            return child_git
                         if entry.lower() not in GENERIC_PROJECT_NAMES and not is_file_name(entry):
                             return entry
                     matches = glob.glob(f"{proj_dir}/**/{target_base}", recursive=True)
                     if matches:
-                        git_name = find_git_root_name(proj_dir)
-                        if git_name:
-                            return git_name
+                        child_git = find_git_root_name(proj_dir)
+                        if child_git:
+                            return child_git
                         if entry.lower() not in GENERIC_PROJECT_NAMES and not is_file_name(entry):
                             return entry
         except Exception:
             pass
+            
     return ""
 
 # // Context Extraction Engine
@@ -178,7 +188,7 @@ def extract_project_and_context(app_name: str, window_title: str) -> Tuple[str, 
                     proj_candidate = part_a
                     
             if proj_candidate and proj_candidate.lower() not in GENERIC_PROJECT_NAMES and not is_file_name(proj_candidate):
-                for w_root in WORKSPACE_ROOTS:
+                for w_root in get_workspace_roots():
                     cand_path = os.path.join(w_root, proj_candidate)
                     if os.path.exists(cand_path):
                         git_name = find_git_root_name(cand_path)
@@ -199,7 +209,7 @@ def extract_project_and_context(app_name: str, window_title: str) -> Tuple[str, 
         elif len(filtered) == 1:
             only_part = filtered[0]
             if only_part.lower() not in GENERIC_PROJECT_NAMES and not is_file_name(only_part):
-                for w_root in WORKSPACE_ROOTS:
+                for w_root in get_workspace_roots():
                     cand_path = os.path.join(w_root, only_part)
                     if os.path.exists(cand_path):
                         git_name = find_git_root_name(cand_path)
@@ -226,7 +236,7 @@ def extract_project_and_context(app_name: str, window_title: str) -> Tuple[str, 
                 file_cand, proj_cand = proj_cand, file_cand
                 
             if proj_cand.lower() not in GENERIC_PROJECT_NAMES and not is_file_name(proj_cand):
-                for w_root in WORKSPACE_ROOTS:
+                for w_root in get_workspace_roots():
                     cand_path = os.path.join(w_root, proj_cand)
                     if os.path.exists(cand_path):
                         git_name = find_git_root_name(cand_path)
@@ -246,7 +256,7 @@ def extract_project_and_context(app_name: str, window_title: str) -> Tuple[str, 
         elif len(filtered) == 1:
             only_part = filtered[0]
             if only_part.lower() not in GENERIC_PROJECT_NAMES and not is_file_name(only_part):
-                for w_root in WORKSPACE_ROOTS:
+                for w_root in get_workspace_roots():
                     cand_path = os.path.join(w_root, only_part)
                     if os.path.exists(cand_path):
                         git_name = find_git_root_name(cand_path)
@@ -282,13 +292,12 @@ def extract_project_and_context(app_name: str, window_title: str) -> Tuple[str, 
         if gh_match:
             repo = gh_match.group(1).strip()
             if repo.lower() not in GENERIC_PROJECT_NAMES and not is_file_name(repo):
-                for w_root in WORKSPACE_ROOTS:
+                for w_root in get_workspace_roots():
                     cand_path = os.path.join(w_root, repo)
                     if os.path.exists(cand_path):
                         git_name = find_git_root_name(cand_path)
                         if git_name:
                             return git_name, f"GitHub: {repo}"
-                        return repo, f"GitHub: {repo}"
                 return repo, f"GitHub: {repo}"
         parts = [clean_file_title(p) for p in re.split(r"[-—–]", clean_title) if p.strip()]
         if parts:
