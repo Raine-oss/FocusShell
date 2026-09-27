@@ -2,7 +2,7 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.8%2B-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-Linux%20X11%20%7C%20Wayland-lightgrey.svg)](#platform-support)
+[![Platform](https://img.shields.io/badge/platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey.svg)](#platform-support)
 [![Build Status](https://img.shields.io/badge/build-passing-success.svg)](https://github.com/Raine-oss/FocusShell/actions)
 [![Downloads](https://img.shields.io/github/downloads/Raine-oss/FocusShell/total.svg)](https://github.com/Raine-oss/FocusShell/releases)
 
@@ -10,7 +10,12 @@ A high-performance, local-first terminal digital activity and focus tracker desi
 
 ---
 
-[![Download Latest Release](https://img.shields.io/badge/Download_Latest_Release-v1.0.0-2ea44f?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Raine-oss/FocusShell/releases/tag/v1.0.0)
+### Direct Downloads & Navigation
+
+[![Download for Linux](https://img.shields.io/badge/Linux-Download_CLI_Binary-E95420?style=for-the-badge&logo=linux&logoColor=white)](https://github.com/Raine-oss/FocusShell/releases/download/v1.0.0/focusshell)
+[![Download for macOS](https://img.shields.io/badge/macOS-Download_Package-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/Raine-oss/FocusShell/releases/download/v1.0.0/focusshell-1.0.0-py3-none-any.whl)
+[![Download for Windows](https://img.shields.io/badge/Windows-Download_Package-0078D6?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/Raine-oss/FocusShell/releases/download/v1.0.0/focusshell-1.0.0-py3-none-any.whl)
+[![All Releases](https://img.shields.io/badge/GitHub-All_Releases-2ea44f?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Raine-oss/FocusShell/releases/latest)
 [![View Documentation](https://img.shields.io/badge/GitHub-Documentation-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Raine-oss/FocusShell#core-capabilities)
 [![Report an Issue](https://img.shields.io/badge/GitHub-Issue_Tracker-blue?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Raine-oss/FocusShell/issues)
 
@@ -20,7 +25,7 @@ A high-performance, local-first terminal digital activity and focus tracker desi
 
 - **Automatic Project Attribution**: Uses Git repository root discovery to map editor and terminal windows directly to their parent projects (e.g. `FocusShell`, `LogMorph`), preventing filename fragment leakage.
 - **Background Daemon Architecture**: Asynchronous tracking daemon with robust PID locking, signal interception (`SIGTERM`, `SIGINT`), and automated crash recovery for orphaned records.
-- **Hardware Idle Detection**: Native C-level XScreenSaver and ctypes idle query with zero polling overhead, ensuring breaks and lock screens do not inflate screen time.
+- **Hardware Idle Detection**: Native C-level XScreenSaver, Win32 `GetLastInputInfo`, and macOS `IOKit`/`CGEventSource` query with zero polling overhead.
 - **Structured Daily Review (`focusshell review`)**: Factual, non-judgmental daily summary answering what occurred across projects, applications, and activity flows.
 - **Interactive Focus Mode (`focusshell focus <duration> [project]`)**: Live terminal dashboard with progress tracking, real-time focus percentage, and interruption counting.
 - **Behavioral Insights Engine (`focusshell insights`)**: Identifies peak activity windows, longest uninterrupted working sessions, context switches, and distraction sources.
@@ -45,36 +50,54 @@ A high-performance, local-first terminal digital activity and focus tracker desi
 
 ## Installation
 
-### Method 1: Git Clone and Local CLI (Recommended)
+### Linux
+
+#### Option A: Direct Executable Download
+```bash
+sudo curl -sSL https://github.com/Raine-oss/FocusShell/releases/download/v1.0.0/focusshell -o /usr/local/bin/focusshell
+sudo chmod +x /usr/local/bin/focusshell
+focusshell start
+```
+
+#### Option B: Python Package / Wheel
+```bash
+pip install https://github.com/Raine-oss/FocusShell/releases/download/v1.0.0/focusshell-1.0.0-py3-none-any.whl
+focusshell start
+```
+
+---
+
+### macOS
 
 ```bash
-# Clone the repository
+# Install via wheel package
+pip install https://github.com/Raine-oss/FocusShell/releases/download/v1.0.0/focusshell-1.0.0-py3-none-any.whl
+
+# Start the background tracker
+focusshell start
+```
+
+---
+
+### Windows
+
+```powershell
+# Open PowerShell or Windows Terminal and install via pip
+pip install https://github.com/Raine-oss/FocusShell/releases/download/v1.0.0/focusshell-1.0.0-py3-none-any.whl
+
+# Start the background daemon
+focusshell start
+```
+
+---
+
+### Universal: Git Clone & Local Development
+
+```bash
 git clone https://github.com/Raine-oss/FocusShell.git
 cd FocusShell
-
-# Ensure dependencies are installed
-pip install -r requirements.txt # or pip install rich
-
-# Make executable available
-chmod +x focusshell
-./focusshell start
-```
-
-### Method 2: System-wide Symlink
-
-```bash
-# Link executable into standard user binary path
-sudo ln -sf "$(pwd)/focusshell" /usr/local/bin/focusshell
-
-# Verify installation
-focusshell doctor
-```
-
-### Method 3: Python Package Installation (pip)
-
-```bash
 pip install .
-focusshell start
+focusshell doctor
 ```
 
 ---
@@ -98,17 +121,17 @@ Output:
 ╭──────────────────────────────────────────────────────────────────────────────╮
 │ FocusShell — System & Environment Doctor                                     │
 ╰──────────────────────────────────────────────────────────────────────────────╯
- Display Server          ✓ Ready      Session Type: X11
+ Operating System        ✓ Ready      Linux 7.0.0-31-generic (x86_64)
+ Window Subsystem        ✓ Ready      Linux X11
  Window Capture          ✓ Working    Antigravity — WorkSpace
  Idle Detector           ✓ Active     Current Idle: 0s (XScreenSaver / ctypes)
  Database Integrity      ✓ Healthy    WAL Mode: WAL (focus.db)
  Tracker Daemon          ● Running    Process PID: 1969759
  Session State           ✓ Consistent Synchronized (PID 1969759)
  Active Session          ✓ Active     Duration: 24s
- Database Sessions       ✓ Valid      530 recorded sessions
- Project Attribution     ✓ Tracked    45% attributed (34m)
- Git Integration         ✓ Available  Path: /usr/bin/git
- Daemon Log              ✓ Logged     0.0 KB
+ Database Sessions       ✓ Valid      775 recorded sessions
+ Project Attribution     ✓ Tracked    53% attributed (1h 02m)
+ Daemon Log              ✓ Logged     0.0 KB (focus.log)
 
 All core subsystems verified.
 ```
