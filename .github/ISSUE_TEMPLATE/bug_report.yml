@@ -1,0 +1,53 @@
+name: Bug Report
+description: Report a bug, crash, or unexpected behavior in FocusShell
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting an issue with FocusShell. Please provide as much detail as possible to help us diagnose and fix the problem quickly.
+
+  - type: input
+    id: version
+    attributes:
+      label: FocusShell Version
+      description: Run `focusshell -v` or `focusshell doctor` and paste the version here.
+      placeholder: e.g. FocusShell v0.1.1
+    validations:
+      required: true
+
+  - type: input
+    id: os-environment
+    attributes:
+      label: Operating System & Display Server
+      description: Linux distribution and session type (X11 or Wayland).
+      placeholder: e.g. Ubuntu 24.04 LTS (X11)
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description of the Bug
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the behavior.
+      placeholder: |
+        1. Start daemon with `focusshell start`
+        2. Open application ...
+        3. Run `focusshell status`
+    validations:
+      required: true
+
+  - type: textarea
+    id: doctor-output
+    attributes:
+      label: Diagnostic Doctor Output
+      description: Paste the output of `focusshell doctor` if available.
+      render: text

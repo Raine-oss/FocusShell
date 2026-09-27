@@ -1,0 +1,15 @@
+# // Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+
+# // Local Data
+*.db
+*.sqlite
+*.sqlite3
+.DS_Store
+
