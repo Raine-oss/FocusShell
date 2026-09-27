@@ -14,18 +14,15 @@ def get_db_path() -> str:
 def get_db_connection(db_path: Optional[str] = None) -> sqlite3.Connection:
     path = db_path or get_db_path()
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    conn = sqlite3.connect(path, timeout=10.0)
+    conn = sqlite3.connect(path, timeout=30.0)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode = WAL;")
-    conn.execute("PRAGMA busy_timeout = 5000;")
+    conn.execute("PRAGMA busy_timeout = 30000;")
     conn.execute("PRAGMA synchronous = NORMAL;")
     return conn
 
 # // Schema Initialization & Migrations
 def init_db(db_path: Optional[str] = None) -> None:
-    from core.categories import categorize_window
-    from core.context import extract_project_and_context
-    
     conn = get_db_connection(db_path)
     cursor = conn.cursor()
     
@@ -73,23 +70,6 @@ def init_db(db_path: Optional[str] = None) -> None:
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_sessions_started_at ON sessions (started_at);")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_goals_target ON goals (target_name);")
     
-    # // Legacy Data Re-attribution & Clean Up
-    cursor.execute("SELECT id, app_name, project_context, window_title FROM sessions")
-    rows = cursor.fetchall()
-    for row in rows:
-        r_id = row["id"]
-        norm_app = normalize_app_name(row["app_name"])
-        raw_title = row["window_title"] or ""
-        
-        proj_name, clean_ctx = extract_project_and_context(norm_app, raw_title)
-        cat = categorize_window(norm_app, clean_ctx)
-        
-        cursor.execute("""
-            UPDATE sessions 
-            SET app_name = ?, project_context = ?, window_title = ?, category = ?
-            WHERE id = ?
-        """, (norm_app, proj_name, clean_ctx, cat, r_id))
-            
     conn.commit()
     conn.close()
 

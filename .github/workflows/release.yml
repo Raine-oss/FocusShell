@@ -28,11 +28,19 @@ jobs:
         run: |
           python -m build
 
-      - name: Prepare Standalone Scripts
+      - name: Prepare Standalone Executable and Distributions
         run: |
           mkdir -p release-assets
           cp dist/* release-assets/
-          cp focusshell release-assets/focusshell
+          python -c '
+          import zipapp, tempfile, os, shutil
+          tmp = tempfile.mkdtemp()
+          shutil.copy("main.py", os.path.join(tmp, "__main__.py"))
+          shutil.copytree("core", os.path.join(tmp, "core"))
+          zipapp.create_archive(tmp, "release-assets/focusshell", interpreter="/usr/bin/env python3")
+          os.chmod("release-assets/focusshell", 0o755)
+          shutil.rmtree(tmp)
+          '
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
