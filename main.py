@@ -29,7 +29,7 @@ from core.views import (
 )
 
 # // Version Info
-VERSION = "0.1.1"
+VERSION = "1.0.0"
 
 # // Argument Parser Setup
 def create_parser() -> argparse.ArgumentParser:

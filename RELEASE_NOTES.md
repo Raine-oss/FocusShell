@@ -4,7 +4,7 @@ All notable changes to the FocusShell project are documented in this file.
 
 ---
 
-## [v0.1.1] - 2026-09-27
+## [v1.0.0] - 2026-09-27
 
 ### Added
 - **Structured Daily Review (`focusshell review`)**: Factual, non-judgmental daily reflection answering what occurred during the day without gamified productivity scores.

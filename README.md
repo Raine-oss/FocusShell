@@ -10,7 +10,7 @@ A high-performance, local-first terminal digital activity and focus tracker desi
 
 ---
 
-[![Download Latest Release](https://img.shields.io/badge/Download_Latest_Release-v0.1.0-2ea44f?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Raine-oss/FocusShell/releases/tag/v0.1.0)
+[![Download Latest Release](https://img.shields.io/badge/Download_Latest_Release-v1.0.0-2ea44f?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Raine-oss/FocusShell/releases/tag/v1.0.0)
 [![View Documentation](https://img.shields.io/badge/GitHub-Documentation-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Raine-oss/FocusShell#core-capabilities)
 [![Report an Issue](https://img.shields.io/badge/GitHub-Issue_Tracker-blue?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Raine-oss/FocusShell/issues)
 
