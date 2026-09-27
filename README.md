@@ -34,12 +34,12 @@ A high-performance, local-first terminal digital activity and focus tracker desi
 
 ## Platform Support
 
-| Operating System | Display Server | Status | Detection Mechanism |
+| Operating System | Architecture / Display Subsystem | Status | Detection Mechanism |
 | :--- | :--- | :--- | :--- |
-| **Linux (x86_64 / ARM64)** | **X11** | Fully Supported | `xprop`, `_NET_ACTIVE_WINDOW`, `XScreenSaver` |
-| **Linux (x86_64 / ARM64)** | **Wayland** | Supported | GNOME Shell DBus, `kdotool`, `hyprctl`, `swaymsg` |
-| **macOS** | **Quartz / WindowServer** | Planned | `CGWindowListCopyWindowInfo`, CoreGraphics |
-| **Windows** | **Win32** | Planned | `GetForegroundWindow`, `GetLastInputInfo` |
+| **Linux (Arch, Ubuntu, Debian, Fedora, openSUSE, Alpine, NixOS)** | **X11 (x86_64, aarch64, armv7, i686)** | Fully Supported | `xprop`, `_NET_ACTIVE_WINDOW`, `XScreenSaver` ctypes |
+| **Linux (Arch, Ubuntu, Debian, Fedora, openSUSE, Alpine, NixOS)** | **Wayland (GNOME, KDE Plasma, Hyprland, Sway, wlroots)** | Fully Supported | `org.gnome.Shell.Introspect`, `kdotool`, `hyprctl`, `swaymsg`, `Mutter.IdleMonitor` |
+| **macOS (macOS 11+ Big Sur, Monterey, Ventura, Sonoma, Sequoia)** | **Apple Silicon (M1/M2/M3/M4 ARM64) & Intel (x86_64)** | Fully Supported | AppleScript `osascript`, CoreGraphics `CGEventSource`, `IOKit` `IOHIDSystem` |
+| **Windows (Windows 10, Windows 11, Windows Server)** | **Win32 / DWM (x86_64, ARM64, x86)** | Fully Supported | `GetForegroundWindow`, `QueryFullProcessImageNameW`, `GetLastInputInfo` ctypes |
 
 ---
 

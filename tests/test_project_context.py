@@ -83,6 +83,14 @@ class TestProjectContext(unittest.TestCase):
         self.assertEqual(normalize_app_name("brave-browser"), "Brave")
         self.assertEqual(normalize_app_name("google-chrome"), "Google Chrome")
         self.assertEqual(normalize_app_name("Antigravity IDE"), "Antigravity")
+        self.assertEqual(normalize_app_name("windowsterminal.exe"), "Windows Terminal")
+        self.assertEqual(normalize_app_name("powershell.exe"), "PowerShell")
+        self.assertEqual(normalize_app_name("cmd.exe"), "Command Prompt")
+        self.assertEqual(normalize_app_name("Code.exe"), "VS Code")
+        self.assertEqual(normalize_app_name("chrome.exe"), "Google Chrome")
+        self.assertEqual(normalize_app_name("idea64.exe"), "IntelliJ IDEA")
+        self.assertEqual(normalize_app_name("iterm2"), "iTerm2")
+        self.assertEqual(normalize_app_name("Code.app"), "VS Code")
 
 # // Test Runner
 if __name__ == "__main__":

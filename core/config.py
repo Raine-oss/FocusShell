@@ -1,12 +1,34 @@
 # // Imports
 import os
+import sys
 import json
 from typing import Dict, Any
 
+# // Multiplatform Path Resolvers
+def get_default_config_dir() -> str:
+    if sys.platform.startswith("win"):
+        appdata = os.environ.get("APPDATA") or os.path.expanduser("~\\AppData\\Roaming")
+        return os.path.join(appdata, "FocusShell")
+    elif sys.platform == "darwin":
+        return os.path.expanduser("~/Library/Application Support/FocusShell")
+    else:
+        xdg_config = os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config")
+        return os.path.join(xdg_config, "focusshell")
+
+def get_default_data_dir() -> str:
+    if sys.platform.startswith("win"):
+        localappdata = os.environ.get("LOCALAPPDATA") or os.path.expanduser("~\\AppData\\Local")
+        return os.path.join(localappdata, "FocusShell")
+    elif sys.platform == "darwin":
+        return os.path.expanduser("~/Library/Application Support/FocusShell")
+    else:
+        xdg_data = os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share")
+        return os.path.join(xdg_data, "focusshell")
+
 # // Default Configuration
-DEFAULT_CONFIG_DIR = os.path.expanduser("~/.config/focusshell")
+DEFAULT_CONFIG_DIR = get_default_config_dir()
 DEFAULT_CONFIG_PATH = os.path.join(DEFAULT_CONFIG_DIR, "config.json")
-DEFAULT_DATA_DIR = os.path.expanduser("~/.local/share/focusshell")
+DEFAULT_DATA_DIR = get_default_data_dir()
 DEFAULT_DB_PATH = os.path.join(DEFAULT_DATA_DIR, "focus.db")
 
 DEFAULT_SETTINGS: Dict[str, Any] = {

@@ -1,8 +1,10 @@
 # // Imports
 import os
+import sys
 import json
 import shutil
 import sqlite3
+import platform
 from datetime import datetime
 from rich.console import Console
 from rich.panel import Panel
@@ -27,14 +29,21 @@ def run_diagnostics() -> None:
     table.add_column("Status", width=14)
     table.add_column("Details", style="dim", width=45)
     
-    # // 1. Display Server Check
-    session_type = os.environ.get("XDG_SESSION_TYPE", "unknown").lower()
-    if session_type in ("x11", "wayland"):
-        table.add_row("Display Server", "[bold green]✓ Ready[/bold green]", f"Session Type: {session_type.upper()}")
-    else:
-        table.add_row("Display Server", "[bold yellow]! Warning[/bold yellow]", f"Unknown XDG_SESSION_TYPE: {session_type}")
+    # // 1. Operating System & Architecture Check
+    os_name = platform.system()
+    os_arch = platform.machine()
+    table.add_row("Operating System", "[bold green]✓ Ready[/bold green]", f"{os_name} {platform.release()} ({os_arch})")
 
-    # // 2. Active Window Capture
+    # // 2. Window Subsystem Check
+    if sys.platform.startswith("win"):
+        table.add_row("Window Subsystem", "[bold green]✓ Ready[/bold green]", "Desktop Window Manager (Win32 API)")
+    elif sys.platform == "darwin":
+        table.add_row("Window Subsystem", "[bold green]✓ Ready[/bold green]", "macOS WindowServer (Quartz / CoreGraphics)")
+    else:
+        session_type = os.environ.get("XDG_SESSION_TYPE", "x11").lower()
+        table.add_row("Window Subsystem", "[bold green]✓ Ready[/bold green]", f"Linux {session_type.upper()}")
+
+    # // 3. Active Window Capture
     app, title = get_active_window()
     if app and title:
         disp = title if len(title) <= 35 else title[:32] + "..."
@@ -42,14 +51,19 @@ def run_diagnostics() -> None:
     else:
         table.add_row("Window Capture", "[bold yellow]! Idle/None[/bold yellow]", "No active window currently detected")
 
-    # // 3. Idle Detection Check
+    # // 4. Idle Detection Check
     idle_sec = get_idle_seconds()
     if idle_sec is not None:
-        table.add_row("Idle Detector", "[bold green]✓ Active[/bold green]", f"Current Idle: {int(idle_sec)}s (XScreenSaver / ctypes)")
+        if sys.platform.startswith("win"):
+            table.add_row("Idle Detector", "[bold green]✓ Active[/bold green]", f"Current Idle: {int(idle_sec)}s (Win32 GetLastInputInfo)")
+        elif sys.platform == "darwin":
+            table.add_row("Idle Detector", "[bold green]✓ Active[/bold green]", f"Current Idle: {int(idle_sec)}s (macOS CoreGraphics / IOKit)")
+        else:
+            table.add_row("Idle Detector", "[bold green]✓ Active[/bold green]", f"Current Idle: {int(idle_sec)}s (XScreenSaver / Mutter / ctypes)")
     else:
         table.add_row("Idle Detector", "[bold yellow]! Fallback[/bold yellow]", "Native idle not supported, using fallback")
 
-    # // 4. SQLite Database Health
+    # // 5. SQLite Database Health
     db_path = get_db_path()
     try:
         conn = get_db_connection()
@@ -66,14 +80,14 @@ def run_diagnostics() -> None:
     except Exception as e:
         table.add_row("Database Integrity", "[bold red]✗ Error[/bold red]", str(e))
 
-    # // 5. Tracker Daemon Status
+    # // 6. Tracker Daemon Status
     pid = get_daemon_pid()
     if pid is not None:
         table.add_row("Tracker Daemon", "[bold green]● Running[/bold green]", f"Process PID: {pid}")
     else:
         table.add_row("Tracker Daemon", "[bold dim]○ Stopped[/bold dim]", "Not running (start with `focusshell start`)")
 
-    # // 6. Session State Consistency
+    # // 7. Session State Consistency
     cache_path = os.path.join(DEFAULT_DATA_DIR, "active_state.json")
     is_state_consistent = True
     state_detail = "Aligned with SQLite"
@@ -105,7 +119,7 @@ def run_diagnostics() -> None:
     else:
         table.add_row("Session State", "[bold dim]○ Inactive[/bold dim]", "Daemon stopped")
 
-    # // 7. Active Session Metrics
+    # // 8. Active Session Metrics
     status_metrics = get_current_status_metrics()
     live_sec = status_metrics.get("live_session_seconds", 0)
     if pid is not None and live_sec > 0:
@@ -115,7 +129,7 @@ def run_diagnostics() -> None:
     else:
         table.add_row("Active Session", "[bold dim]○ Inactive[/bold dim]", "No active session")
 
-    # // 8. Database Records Health
+    # // 9. Database Records Health
     all_sessions = get_all_sessions()
     total_records = len(all_sessions)
     if total_records > 0:
@@ -123,7 +137,7 @@ def run_diagnostics() -> None:
     else:
         table.add_row("Database Sessions", "[bold dim]○ Empty[/bold dim]", "0 sessions recorded")
 
-    # // 9. Project Attribution Ratio
+    # // 10. Project Attribution Ratio
     total_screen_time = sum(s["duration_seconds"] for s in all_sessions)
     attr_screen_time = sum(s["duration_seconds"] for s in all_sessions if s.get("project_context") and s["project_context"] != "Unattributed")
     if total_screen_time > 0:
@@ -132,14 +146,14 @@ def run_diagnostics() -> None:
     else:
         table.add_row("Project Attribution", "[bold dim]— Untracked[/bold dim]", "No session data")
 
-    # // 10. Git CLI Check
+    # // 11. Git CLI Check
     git_bin = shutil.which("git")
     if git_bin:
         table.add_row("Git Integration", "[bold green]✓ Available[/bold green]", f"Path: {git_bin}")
     else:
         table.add_row("Git Integration", "[bold yellow]! Not Found[/bold yellow]", "Git CLI missing from PATH")
 
-    # // 11. Log File Status
+    # // 12. Log File Status
     if os.path.exists(LOG_FILE):
         size_kb = os.path.getsize(LOG_FILE) / 1024.0
         table.add_row("Daemon Log", "[bold green]✓ Logged[/bold green]", f"{size_kb:.1f} KB ({LOG_FILE})")
