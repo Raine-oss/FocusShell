@@ -11,22 +11,57 @@ from core.config import load_config, DEFAULT_DATA_DIR
 PID_FILE = os.path.join(DEFAULT_DATA_DIR, "focusshell.pid")
 LOG_FILE = os.path.join(DEFAULT_DATA_DIR, "focusshell.log")
 
+# // Daemon Command Resolver
+def resolve_daemon_command(main_script_path: str) -> list:
+    target_path = main_script_path
+    if target_path.endswith("__main__.py"):
+        parent_candidate = os.path.dirname(target_path)
+        if os.path.isfile(parent_candidate) or parent_candidate.endswith("focusshell"):
+            target_path = parent_candidate
+    return [sys.executable, target_path, "daemon-run"]
+
 # // Daemon Inspector
 def get_daemon_pid() -> Optional[int]:
-    if not os.path.exists(PID_FILE):
-        return None
+    if os.path.exists(PID_FILE):
+        try:
+            with open(PID_FILE, "r") as f:
+                pid = int(f.read().strip())
+            os.kill(pid, 0)
+            return pid
+        except (ValueError, OSError, PermissionError):
+            if os.path.exists(PID_FILE):
+                try:
+                    os.remove(PID_FILE)
+                except OSError:
+                    pass
+
+    # // Process Fallback Discovery
     try:
-        with open(PID_FILE, "r") as f:
-            pid = int(f.read().strip())
-        os.kill(pid, 0)
-        return pid
-    except (ValueError, OSError, PermissionError):
-        if os.path.exists(PID_FILE):
-            try:
-                os.remove(PID_FILE)
-            except OSError:
-                pass
-        return None
+        if sys.platform.startswith("win"):
+            out = subprocess.check_output(
+                ["wmic", "process", "where", "CommandLine like '%daemon-run%'", "get", "ProcessId"],
+                stderr=subprocess.DEVNULL
+            ).decode("utf-8", errors="ignore")
+            for line in out.splitlines():
+                line = line.strip()
+                if line.isdigit() and int(line) != os.getpid():
+                    found_pid = int(line)
+                    with open(PID_FILE, "w") as f:
+                        f.write(str(found_pid))
+                    return found_pid
+        else:
+            out = subprocess.check_output(["pgrep", "-f", "daemon-run"], stderr=subprocess.DEVNULL).decode("utf-8")
+            for line in out.splitlines():
+                line = line.strip()
+                if line.isdigit() and int(line) != os.getpid():
+                    found_pid = int(line)
+                    with open(PID_FILE, "w") as f:
+                        f.write(str(found_pid))
+                    return found_pid
+    except Exception:
+        pass
+
+    return None
 
 # // Daemon Controls
 def start_daemon(main_script_path: str) -> Tuple[bool, str]:
@@ -54,8 +89,9 @@ def start_daemon(main_script_path: str) -> Tuple[bool, str]:
     else:
         popen_kwargs["start_new_session"] = True
         
+    cmd = resolve_daemon_command(main_script_path)
     proc = subprocess.Popen(
-        [sys.executable, main_script_path, "daemon-run"],
+        cmd,
         **popen_kwargs
     )
         

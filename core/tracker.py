@@ -208,6 +208,16 @@ def run_tracking_loop(stop_event=None) -> None:
     
     signal.signal(signal.SIGTERM, _signal_handler)
     signal.signal(signal.SIGINT, _signal_handler)
+    if hasattr(signal, "SIGHUP"):
+        signal.signal(signal.SIGHUP, _signal_handler)
+        
+    pid_file = os.path.join(DEFAULT_DATA_DIR, "focusshell.pid")
+    try:
+        os.makedirs(DEFAULT_DATA_DIR, exist_ok=True)
+        with open(pid_file, "w") as f:
+            f.write(str(os.getpid()))
+    except Exception:
+        pass
     
     cfg = load_config()
     sampling_interval = float(cfg.get("sampling_interval_seconds", 2.0))
@@ -219,33 +229,81 @@ def run_tracking_loop(stop_event=None) -> None:
     current_project: str = ""
     is_paused = False
     
-    while _running:
-        if stop_event and stop_event():
-            break
-            
-        idle_secs = get_idle_seconds()
-        
-        # // Idle State Handling
-        if idle_secs >= idle_threshold:
-            if not is_paused:
-                is_paused = True
-                if _active_session_id is not None and _session_start_time is not None:
-                    update_session(_active_session_id, datetime.now(), _session_active_seconds)
-            time.sleep(sampling_interval)
-            continue
-        else:
-            if is_paused:
-                is_paused = False
+    try:
+        while _running:
+            if stop_event and stop_event():
+                break
                 
-        now = datetime.now()
-        app, title = get_active_window()
-        
-        # // Window Activity Check
-        if app and title:
-            project_name, file_context = extract_project_and_context(app, title)
+            idle_secs = get_idle_seconds()
             
-            if app != current_app or file_context != current_title or project_name != current_project:
-                # // Close Previous Session
+            # // Idle State Handling
+            if idle_secs >= idle_threshold:
+                if not is_paused:
+                    is_paused = True
+                    if _active_session_id is not None and _session_start_time is not None:
+                        update_session(_active_session_id, datetime.now(), _session_active_seconds)
+                time.sleep(sampling_interval)
+                continue
+            else:
+                if is_paused:
+                    is_paused = False
+                    
+            now = datetime.now()
+            app, title = get_active_window()
+            
+            # // Window Activity Check
+            if app and title:
+                project_name, file_context = extract_project_and_context(app, title)
+                
+                if app != current_app or file_context != current_title or project_name != current_project:
+                    # // Close Previous Session
+                    if _active_session_id is not None and _session_start_time is not None:
+                        close_session(
+                            session_id=_active_session_id,
+                            ended_at=now,
+                            duration_seconds=_session_active_seconds,
+                            min_duration=min_session_duration
+                        )
+                    
+                    # // Start New Session
+                    category = categorize_window(app, file_context)
+                    _active_session_id = create_session(
+                        app_name=app,
+                        window_title=file_context,
+                        category=category,
+                        project_context=project_name,
+                        started_at=now
+                    )
+                    current_app = app
+                    current_title = file_context
+                    current_project = project_name
+                    _session_start_time = now
+                    _session_active_seconds = 1
+                else:
+                    # // Increment Active Session Duration
+                    if _session_start_time is not None:
+                        _session_active_seconds = max(1, int((now - _session_start_time).total_seconds()))
+                    else:
+                        _session_active_seconds += int(sampling_interval)
+                        
+                    if _active_session_id is not None:
+                        update_session(
+                            session_id=_active_session_id,
+                            ended_at=now,
+                            duration_seconds=_session_active_seconds
+                        )
+                        
+                # // Update Live State Cache
+                write_active_state({
+                    "app_name": current_app,
+                    "window_title": current_title,
+                    "project_name": current_project,
+                    "session_start": _session_start_time.strftime("%Y-%m-%d %H:%M:%S") if _session_start_time else None,
+                    "duration_seconds": _session_active_seconds,
+                    "timestamp": now.strftime("%Y-%m-%d %H:%M:%S")
+                })
+            else:
+                # // No Window Active
                 if _active_session_id is not None and _session_start_time is not None:
                     close_session(
                         session_id=_active_session_id,
@@ -253,69 +311,30 @@ def run_tracking_loop(stop_event=None) -> None:
                         duration_seconds=_session_active_seconds,
                         min_duration=min_session_duration
                     )
-                
-                # // Start New Session
-                category = categorize_window(app, file_context)
-                _active_session_id = create_session(
-                    app_name=app,
-                    window_title=file_context,
-                    category=category,
-                    project_context=project_name,
-                    started_at=now
-                )
-                current_app = app
-                current_title = file_context
-                current_project = project_name
-                _session_start_time = now
-                _session_active_seconds = 1
-            else:
-                # // Increment Active Session Duration
-                if _session_start_time is not None:
-                    _session_active_seconds = max(1, int((now - _session_start_time).total_seconds()))
-                else:
-                    _session_active_seconds += int(sampling_interval)
+                    _active_session_id = None
+                    _session_start_time = None
+                    _session_active_seconds = 0
+                    current_app = None
+                    current_title = None
+                    current_project = ""
+                    clear_active_state()
                     
-                if _active_session_id is not None:
-                    update_session(
-                        session_id=_active_session_id,
-                        ended_at=now,
-                        duration_seconds=_session_active_seconds
-                    )
-                    
-            # // Update Live State Cache
-            write_active_state({
-                "app_name": current_app,
-                "window_title": current_title,
-                "project_name": current_project,
-                "session_start": _session_start_time.strftime("%Y-%m-%d %H:%M:%S") if _session_start_time else None,
-                "duration_seconds": _session_active_seconds,
-                "timestamp": now.strftime("%Y-%m-%d %H:%M:%S")
-            })
-        else:
-            # // No Window Active
-            if _active_session_id is not None and _session_start_time is not None:
-                close_session(
-                    session_id=_active_session_id,
-                    ended_at=now,
-                    duration_seconds=_session_active_seconds,
-                    min_duration=min_session_duration
-                )
-                _active_session_id = None
-                _session_start_time = None
-                _session_active_seconds = 0
-                current_app = None
-                current_title = None
-                current_project = ""
-                clear_active_state()
-                
-        time.sleep(sampling_interval)
-        
-    # // Termination Flush
-    if _active_session_id is not None and _session_start_time is not None:
-        close_session(
-            session_id=_active_session_id,
-            ended_at=datetime.now(),
-            duration_seconds=_session_active_seconds,
-            min_duration=min_session_duration
-        )
-    clear_active_state()
+            time.sleep(sampling_interval)
+    finally:
+        # // Termination Flush
+        if _active_session_id is not None and _session_start_time is not None:
+            close_session(
+                session_id=_active_session_id,
+                ended_at=datetime.now(),
+                duration_seconds=_session_active_seconds,
+                min_duration=min_session_duration
+            )
+        clear_active_state()
+        if os.path.exists(pid_file):
+            try:
+                with open(pid_file, "r") as f:
+                    stored_pid = int(f.read().strip())
+                if stored_pid == os.getpid():
+                    os.remove(pid_file)
+            except Exception:
+                pass
